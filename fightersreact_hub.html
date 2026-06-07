@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FightersReact Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0d0f; --bg2: #141417; --bg3: #1c1c21;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+    --text: #f0f0f0; --muted: #888; --accent: #e8383d; --teal: #1fc98e; --blue: #4a9eff;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; font-size: 15px; min-height: 100vh; }
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 18px 32px; display: flex; align-items: center; gap: 14px; }
+  .logo-mark { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; color: #fff; }
+  .logo-text { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.5px; }
+  .logo-text span { color: var(--accent); }
+  .container { max-width: 860px; margin: 0 auto; padding: 32px 24px; }
+  .tab-row { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+  .tab { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; padding: 10px 20px; background: transparent; border: none; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
+  .stat { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+  .stat-num { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .search-row input { flex: 1; background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 14px; padding: 10px 14px; outline: none; transition: border-color 0.15s; }
+  .search-row input::placeholder { color: var(--muted); }
+  .search-row input:focus { border-color: var(--accent); }
+  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+  .filter-btn { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+  .filter-btn:hover { border-color: var(--text); color: var(--text); }
+  .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .ko-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 16px; transition: border-color 0.15s; }
+  .ko-card:hover { border-color: var(--border2); }
+  .ko-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; color: var(--border2); min-width: 36px; padding-top: 2px; }
+  .ko-body { flex: 1; min-width: 0; }
+  .ko-title { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+  .ko-meta { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+  .tag { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: var(--bg3); color: var(--muted); border: 1px solid var(--border); }
+  .tag.org { background: rgba(232,56,61,0.12); color: var(--accent); border-color: rgba(232,56,61,0.25); font-weight: 600; font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.4px; }
+  .tag.react { background: rgba(31,201,142,0.1); color: var(--teal); border-color: rgba(31,201,142,0.2); }
+  .btn-row { display: flex; gap: 7px; flex-wrap: wrap; }
+  .btn { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; padding: 6px 13px; border-radius: 6px; border: 1px solid var(--border2); background: transparent; color: var(--text); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }
+  .btn:hover { background: var(--bg3); }
+  .btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.accent:hover { opacity: 0.88; }
+  .btn.teal { background: rgba(31,201,142,0.12); border-color: rgba(31,201,142,0.3); color: var(--teal); }
+  .btn.teal:hover { background: rgba(31,201,142,0.2); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 14px; }
+  .section-label { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin: 20px 0 10px; }
+  .plat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  .plat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-decoration: none; display: block; transition: all 0.15s; }
+  .plat-card:hover { border-color: var(--border2); background: var(--bg3); transform: translateY(-1px); }
+  .plat-icon { font-size: 18px; margin-bottom: 8px; display: block; }
+  .plat-name { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .plat-tip { font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .fighter-heading { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+  .fighter-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .tip-box { background: rgba(74,158,255,0.07); border: 1px solid rgba(74,158,255,0.15); border-radius: 8px; padding: 12px 14px; font-size: 12px; color: #8ab8e8; line-height: 1.6; margin-top: 16px; }
+  .tip-box strong { color: var(--blue); }
+  .step { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .step:last-child { border-bottom: none; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-title { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
+  .step-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .dl-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .dl-row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .dl-row:last-child { border-bottom: none; }
+  .dl-info { flex: 1; }
+  .dl-title { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+  .dl-desc { font-size: 12px; color: var(--muted); }
+  .pane { display: none; }
+  .pane.active { display: block; animation: fadeIn 0.15s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  svg.icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -2px; }
+
+  /* Script modal */
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; width: 100%; max-width: 640px; max-height: 80vh; display: flex; flex-direction: column; }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+  .modal-title { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; }
+  .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 22px; line-height: 1; padding: 2px 6px; border-radius: 4px; transition: color 0.15s; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+  .script-output { font-size: 14px; line-height: 1.75; color: var(--text); white-space: pre-wrap; min-height: 120px; }
+  .script-loading { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; padding: 20px 0; }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+  .copy-btn-wrap { position: relative; }
+  .copied-badge { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); background: var(--teal); color: #000; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; white-space: nowrap; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  .copied-badge.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">FR</div>
+  <div class="logo-text">Fighters<span>React</span> Hub</div>
+</header>
+
+<div class="container">
+  <div class="tab-row">
+    <button class="tab active" onclick="showTab('knockouts')">Top knockouts</button>
+    <button class="tab" onclick="showTab('reactions')">Find reactions</button>
+    <button class="tab" onclick="showTab('workflow')">Workflow</button>
+  </div>
+
+  <!-- KNOCKOUTS -->
+  <div id="pane-knockouts" class="pane active">
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num">∞</div><div class="stat-label">New KOs weekly</div></div>
+      <div class="stat"><div class="stat-num">6</div><div class="stat-label">Promotions tracked</div></div>
+      <div class="stat"><div class="stat-num">~15 min</div><div class="stat-label">Research time</div></div>
+    </div>
+    <div class="search-row">
+      <input type="text" id="ko-search" placeholder="Search by fighter, org, year..." onkeydown="if(event.key==='Enter')searchKOs()" />
+      <button class="btn accent" onclick="searchKOs()">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Search
+      </button>
+    </div>
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="filterKO(this,'all')">All</button>
+      <button class="filter-btn" onclick="filterKO(this,'ufc')">UFC</button>
+      <button class="filter-btn" onclick="filterKO(this,'boxing')">Boxing</button>
+      <button class="filter-btn" onclick="filterKO(this,'bellator')">Bellator/PFL</button>
+      <button class="filter-btn" onclick="filterKO(this,'classic')">Classic</button>
+    </div>
+    <div id="ko-results"></div>
+  </div>
+
+  <!-- REACTIONS -->
+  <div id="pane-reactions" class="pane">
+    <div class="search-row">
+      <input type="text" id="reaction-input" placeholder="Fighter or fight name... e.g. Ngannou, Canelo, McGregor vs Aldo" onkeydown="if(event.key==='Enter')findReactions()" />
+      <button class="btn accent" onclick="findReactions()">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Find
+      </button>
+    </div>
+    <div id="reaction-results">
+      <div class="empty">Enter a fighter name to get direct reaction links</div>
+    </div>
+  </div>
+
+  <!-- WORKFLOW -->
+  <div id="pane-workflow" class="pane">
+    <div style="margin-bottom:28px;">
+      <div class="step"><div class="step-num">1</div><div><div class="step-title">Find the knockout</div><div class="step-sub">UFC's official YouTube posts every KO within 24hrs. Use the Top Knockouts tab to browse.</div></div></div>
+      <div class="step"><div class="step-num">2</div><div><div class="step-title">Download the video</div><div class="step-sub">yt-dlp (free) — paste any YouTube or Instagram URL and it downloads full quality.</div></div></div>
+      <div class="step"><div class="step-num">3</div><div><div class="step-title">Find fighter reactions</div><div class="step-sub">Use the Find Reactions tab — search the fighter name, click any platform card to open results.</div></div></div>
+      <div class="step"><div class="step-num">4</div><div><div class="step-title">Screen-record reactions</div><div class="step-sub">OBS or built-in screen record. Instagram Stories expire in 24hrs — grab them immediately.</div></div></div>
+      <div class="step"><div class="step-num">5</div><div><div class="step-title">Edit in DaVinci Resolve</div><div class="step-sub">Hook → KO clip → reaction clip. Keep under 60 seconds for TikTok.</div></div></div>
+      <div class="step"><div class="step-num">6</div><div><div class="step-title">Schedule and post</div><div class="step-sub">2x/day. Best times: 12pm and 7pm EST. Cross-post top video to Instagram Reels.</div></div></div>
+    </div>
+    <div class="section-label">Download tools</div>
+    <div class="dl-card">
+      <div class="dl-row"><div class="dl-info"><div class="dl-title">yt-dlp</div><div class="dl-desc">Best free downloader — YouTube, Twitter, Instagram, Reddit</div></div><a href="https://github.com/yt-dlp/yt-dlp" target="_blank" class="btn">GitHub</a></div>
+      <div class="dl-row"><div class="dl-info"><div class="dl-title">4K Video Downloader</div><div class="dl-desc">Desktop app — no command line needed</div></div><a href="https://www.4kdownload.com/products/videodownloader-35" target="_blank" class="btn">Download</a></div>
+      <div class="dl-row"><div class="dl-info"><div class="dl-title">SnapInsta</div><div class="dl-desc">Download Instagram Stories and Reels from your browser</div></div><a href="https://snapinsta.app" target="_blank" class="btn">Open</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPT MODAL -->
+<div class="modal-backdrop" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">TikTok Script</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="script-loading" class="script-loading" style="display:none;">
+        <div class="spinner"></div>
+        Writing your script...
+      </div>
+      <div id="script-output" class="script-output"></div>
+    </div>
+    <div class="modal-footer">
+      <div class="copy-btn-wrap">
+        <div class="copied-badge" id="copied-badge">Copied!</div>
+        <button class="btn teal" onclick="copyScript()">Copy script</button>
+      </div>
+      <button class="btn accent" onclick="closeModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KO_DATA = [
+  { title:"Conor McGregor vs Jose Aldo 13 seconds", org:"ufc", views:"45M+", reactions:22, reacted:["Khabib","Floyd Mayweather","Nate Diaz"], year:2015 },
+  { title:"Francis Ngannou vs Ciryl Gane", org:"ufc", views:"28M+", reactions:12, reacted:["Jon Jones","Tyson Fury","Israel Adesanya"], year:2022 },
+  { title:"Israel Adesanya vs Alex Pereira KO", org:"ufc", views:"22M+", reactions:18, reacted:["Dana White","Canelo Alvarez","Kamaru Usman"], year:2022 },
+  { title:"Deontay Wilder vs Luis Ortiz II KO", org:"boxing", views:"19M+", reactions:14, reacted:["Anthony Joshua","Tyson Fury","Eddie Hearn"], year:2019 },
+  { title:"Ryan Garcia vs Devin Haney KO", org:"boxing", views:"17M+", reactions:16, reacted:["Tank Davis","Canelo Alvarez"], year:2024 },
+  { title:"Mike Perry BKFC knockout highlights", org:"bellator", views:"15M+", reactions:9, reacted:["Jorge Masvidal","Conor McGregor"], year:2023 },
+  { title:"Nate Diaz vs Jorge Masvidal BMF", org:"ufc", views:"12M+", reactions:10, reacted:["Conor McGregor","Dustin Poirier"], year:2019 },
+  { title:"Vitor Belfort vs Wanderlei Silva classic", org:"classic", views:"11M+", reactions:7, reacted:["Chael Sonnen","Joe Rogan"], year:2001 },
+  { title:"Valentina Shevchenko vs Taila Santos KO", org:"ufc", views:"8M+", reactions:6, reacted:["Amanda Nunes","Joanna Jedrzejczyk"], year:2022 },
+  { title:"Jaime Munguia vs Sergiy Derevyanchenko KO", org:"boxing", views:"6M+", reactions:8, reacted:["Golden Boy team","De La Hoya"], year:2024 },
+];
+
+const PLATFORMS = [
+  { icon:"▶", name:"YouTube — reactions", tip:"Newest first", url: f => `https://www.youtube.com/results?search_query=${e(f+' reaction')}&sp=CAI%3D` },
+  { icon:"▶", name:"YouTube — fighters reacting", tip:"Other pros reacting", url: f => `https://www.youtube.com/results?search_query=${e('fighter reacts '+f)}` },
+  { icon:"𝕏", name:"Twitter/X — latest", tip:"Reactions within minutes", url: f => `https://twitter.com/search?q=${e(f+' reaction')}&f=live` },
+  { icon:"𝕏", name:"Twitter/X — videos", tip:"Video posts only", url: f => `https://twitter.com/search?q=${e(f+' reaction')}&f=video` },
+  { icon:"◻", name:"Instagram — tags", tip:"Screen-record stories fast", url: f => `https://www.instagram.com/explore/tags/${e(f.replace(/\s+/g,'').toLowerCase()+'reaction')}` },
+  { icon:"◻", name:"Instagram — reels", tip:"Short reaction clips", url: f => `https://www.instagram.com/reels/audio/${e(f+' reaction')}` },
+  { icon:"♪", name:"TikTok", tip:"Sort by Latest", url: f => `https://www.tiktok.com/search?q=${e(f+' reaction')}&t=video` },
+  { icon:"◉", name:"Reddit — MMA/Boxing", tip:"Community links fast", url: f => `https://www.reddit.com/r/MMA/search/?q=${e(f+' reaction')}&sort=new` },
+  { icon:"⊕", name:"Google — videos", tip:"Catches every platform", url: f => `https://www.google.com/search?q=${e('"'+f+'" fighter reaction')}&tbm=vid&tbs=sbd:1` },
+];
+
+function e(s){ return encodeURIComponent(s); }
+let activeFilter = 'all';
+let currentScript = '';
+
+function renderKOs(data) {
+  const el = document.getElementById('ko-results');
+  if (!data.length) { el.innerHTML = '<div class="empty">No results found.</div>'; return; }
+  el.innerHTML = data.map((ko, i) => `
+    <div class="ko-card">
+      <div class="ko-rank">#${i+1}</div>
+      <div class="ko-body">
+        <div class="ko-title">${ko.title}</div>
+        <div class="ko-meta">${ko.year} &middot; ${ko.views} views &middot; ${ko.reactions} known reactions</div>
+        <div class="tags">
+          <span class="tag org">${ko.org.toUpperCase()}</span>
+          ${ko.reacted.map(f => `<span class="tag react">${f}</span>`).join('')}
+        </div>
+        <div class="btn-row">
+          <a href="https://www.youtube.com/results?search_query=${e(ko.title+' knockout')}" target="_blank" rel="noopener" class="btn teal">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Find on YouTube
+          </a>
+          <button class="btn" onclick="jumpToReactions(${JSON.stringify(ko.title)})">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Find reactions
+          </button>
+          <button class="btn accent" onclick="openScriptModal(${JSON.stringify(ko.title)})">Write script</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterKO(btn, filter) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = filter;
+  renderKOs(filter === 'all' ? KO_DATA : KO_DATA.filter(k => k.org === filter));
+}
+
+function searchKOs() {
+  const q = document.getElementById('ko-search').value.toLowerCase().trim();
+  if (!q) { renderKOs(KO_DATA); return; }
+  const filtered = KO_DATA.filter(k =>
+    k.title.toLowerCase().includes(q) || k.org.includes(q) ||
+    k.reacted.some(f => f.toLowerCase().includes(q)) || String(k.year).includes(q)
+  );
+  renderKOs(filtered.length ? filtered : KO_DATA);
+}
+
+function jumpToReactions(title) {
+  showTab('reactions');
+  document.getElementById('reaction-input').value = title;
+  findReactions();
+}
+
+function findReactions() {
+  const name = document.getElementById('reaction-input').value.trim();
+  if (!name) return;
+  document.getElementById('reaction-results').innerHTML = `
+    <div class="fighter-heading">${name}</div>
+    <div class="fighter-sub">Click any card to open results in a new tab</div>
+    <div class="section-label">Video platforms</div>
+    <div class="plat-grid">${PLATFORMS.slice(0,4).map(p => platCard(p,name)).join('')}</div>
+    <div class="section-label">Social &amp; community</div>
+    <div class="plat-grid">${PLATFORMS.slice(4).map(p => platCard(p,name)).join('')}</div>
+    <div class="tip-box"><strong>Timing tip:</strong> Search within 48hrs of a fight. Instagram Stories expire in 24hrs — screen record immediately. Twitter/X is fastest; YouTube fills up within 1–3 days.</div>
+    <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn" onclick="openAll(${JSON.stringify(name)})">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Open all 9 at once
+      </button>
+      <button class="btn accent" onclick="openScriptModal(${JSON.stringify(name)})">Write a TikTok script</button>
+    </div>`;
+}
+
+function platCard(p, name) {
+  return `<a class="plat-card" href="${p.url(name)}" target="_blank" rel="noopener">
+    <span class="plat-icon">${p.icon}</span>
+    <div class="plat-name">${p.name}</div>
+    <div class="plat-tip">${p.tip}</div>
+  </a>`;
+}
+
+function openAll(name) {
+  PLATFORMS.forEach(p => window.open(p.url(name), '_blank'));
+}
+
+async function openScriptModal(title) {
+  document.getElementById('modal-title').textContent = 'TikTok Script — ' + title;
+  document.getElementById('script-output').textContent = '';
+  document.getElementById('script-loading').style.display = 'flex';
+  document.getElementById('modal').classList.add('open');
+  currentScript = '';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `Write a punchy TikTok script for the FightersReact account. The video is about: "${title}".
+
+Format it exactly like this:
+HOOK (first 3 seconds): [attention-grabbing opener]
+MAIN CONTENT: [what to show/say, step by step]
+CAPTION: [TikTok caption with hashtags]
+AUDIO SUGGESTION: [trending sound type that fits]
+
+Keep it under 60 seconds when read aloud. High energy, combat sports fan tone. No fluff.`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(c => c.text || '').join('') || 'Could not generate script.';
+    currentScript = text;
+    document.getElementById('script-loading').style.display = 'none';
+    document.getElementById('script-output').textContent = text;
+  } catch (err) {
+    document.getElementById('script-loading').style.display = 'none';
+    document.getElementById('script-output').textContent = 'Error generating script. Please try again.';
+  }
+}
+
+function copyScript() {
+  if (!currentScript) return;
+  navigator.clipboard.writeText(currentScript).then(() => {
+    const badge = document.getElementById('copied-badge');
+    badge.classList.add('show');
+    setTimeout(() => badge.classList.remove('show'), 1800);
+  });
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function closeModalOutside(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab[onclick="showTab('${name}')"]`).classList.add('active');
+  document.getElementById('pane-' + name).classList.add('active');
+}
+
+renderKOs(KO_DATA);
+</script>
+</body>
+</html>
