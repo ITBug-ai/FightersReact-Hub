@@ -52,7 +52,6 @@
   .btn.accent:hover { opacity: 0.88; }
   .btn.teal { background: rgba(31,201,142,0.12); border-color: rgba(31,201,142,0.3); color: var(--teal); }
   .btn.teal:hover { background: rgba(31,201,142,0.2); }
-  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 14px; }
   .section-label { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin: 20px 0 10px; }
   .plat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
@@ -80,8 +79,6 @@
   .pane.active { display: block; animation: fadeIn 0.15s ease; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
   svg.icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -2px; }
-
-  /* Script modal */
   .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
   .modal-backdrop.open { display: flex; }
   .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; width: 100%; max-width: 640px; max-height: 80vh; display: flex; flex-direction: column; }
@@ -98,6 +95,12 @@
   .copy-btn-wrap { position: relative; }
   .copied-badge { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); background: var(--teal); color: #000; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; white-space: nowrap; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
   .copied-badge.show { opacity: 1; }
+  .key-setup { padding: 0 0 16px; }
+  .key-setup p { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
+  .key-row { display: flex; gap: 8px; }
+  .key-row input { flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 13px; padding: 9px 12px; outline: none; }
+  .key-row input:focus { border-color: var(--accent); }
+  .key-saved { font-size: 12px; color: var(--teal); margin-top: 8px; display: none; }
 </style>
 </head>
 <body>
@@ -114,7 +117,6 @@
     <button class="tab" onclick="showTab('workflow')">Workflow</button>
   </div>
 
-  <!-- KNOCKOUTS -->
   <div id="pane-knockouts" class="pane active">
     <div class="stats-row">
       <div class="stat"><div class="stat-num">∞</div><div class="stat-label">New KOs weekly</div></div>
@@ -138,7 +140,6 @@
     <div id="ko-results"></div>
   </div>
 
-  <!-- REACTIONS -->
   <div id="pane-reactions" class="pane">
     <div class="search-row">
       <input type="text" id="reaction-input" placeholder="Fighter or fight name... e.g. Ngannou, Canelo, McGregor vs Aldo" onkeydown="if(event.key==='Enter')findReactions()" />
@@ -152,7 +153,6 @@
     </div>
   </div>
 
-  <!-- WORKFLOW -->
   <div id="pane-workflow" class="pane">
     <div style="margin-bottom:28px;">
       <div class="step"><div class="step-num">1</div><div><div class="step-title">Find the knockout</div><div class="step-sub">UFC's official YouTube posts every KO within 24hrs. Use the Top Knockouts tab to browse.</div></div></div>
@@ -171,7 +171,6 @@
   </div>
 </div>
 
-<!-- SCRIPT MODAL -->
 <div class="modal-backdrop" id="modal" onclick="closeModalOutside(event)">
   <div class="modal">
     <div class="modal-header">
@@ -179,6 +178,14 @@
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     <div class="modal-body">
+      <div id="key-setup" class="key-setup">
+        <p>Enter your Anthropic API key once per session to enable script generation. It stays in memory only and is never saved anywhere.</p>
+        <div class="key-row">
+          <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+          <button class="btn accent" onclick="saveKey()">Save key</button>
+        </div>
+        <div class="key-saved" id="key-saved">✓ Key saved — click Write Script on any fight</div>
+      </div>
       <div id="script-loading" class="script-loading" style="display:none;">
         <div class="spinner"></div>
         Writing your script...
@@ -188,7 +195,7 @@
     <div class="modal-footer">
       <div class="copy-btn-wrap">
         <div class="copied-badge" id="copied-badge">Copied!</div>
-        <button class="btn teal" onclick="copyScript()">Copy script</button>
+        <button class="btn teal" id="copy-btn" onclick="copyScript()" style="display:none;">Copy script</button>
       </div>
       <button class="btn accent" onclick="closeModal()">Done</button>
     </div>
@@ -196,7 +203,11 @@
 </div>
 
 <script>
-const KO_DATA = [
+var apiKey = '';
+var currentScript = '';
+var pendingTitle = '';
+
+var KO_DATA = [
   { title:"Conor McGregor vs Jose Aldo 13 seconds", org:"ufc", views:"45M+", reactions:22, reacted:["Khabib","Floyd Mayweather","Nate Diaz"], year:2015 },
   { title:"Francis Ngannou vs Ciryl Gane", org:"ufc", views:"28M+", reactions:12, reacted:["Jon Jones","Tyson Fury","Israel Adesanya"], year:2022 },
   { title:"Israel Adesanya vs Alex Pereira KO", org:"ufc", views:"22M+", reactions:18, reacted:["Dana White","Canelo Alvarez","Kamaru Usman"], year:2022 },
@@ -206,67 +217,72 @@ const KO_DATA = [
   { title:"Nate Diaz vs Jorge Masvidal BMF", org:"ufc", views:"12M+", reactions:10, reacted:["Conor McGregor","Dustin Poirier"], year:2019 },
   { title:"Vitor Belfort vs Wanderlei Silva classic", org:"classic", views:"11M+", reactions:7, reacted:["Chael Sonnen","Joe Rogan"], year:2001 },
   { title:"Valentina Shevchenko vs Taila Santos KO", org:"ufc", views:"8M+", reactions:6, reacted:["Amanda Nunes","Joanna Jedrzejczyk"], year:2022 },
-  { title:"Jaime Munguia vs Sergiy Derevyanchenko KO", org:"boxing", views:"6M+", reactions:8, reacted:["Golden Boy team","De La Hoya"], year:2024 },
+  { title:"Jaime Munguia vs Sergiy Derevyanchenko KO", org:"boxing", views:"6M+", reactions:8, reacted:["Golden Boy team","De La Hoya"], year:2024 }
 ];
 
-const PLATFORMS = [
-  { icon:"▶", name:"YouTube — reactions", tip:"Newest first", url: f => `https://www.youtube.com/results?search_query=${e(f+' reaction')}&sp=CAI%3D` },
-  { icon:"▶", name:"YouTube — fighters reacting", tip:"Other pros reacting", url: f => `https://www.youtube.com/results?search_query=${e('fighter reacts '+f)}` },
-  { icon:"𝕏", name:"Twitter/X — latest", tip:"Reactions within minutes", url: f => `https://twitter.com/search?q=${e(f+' reaction')}&f=live` },
-  { icon:"𝕏", name:"Twitter/X — videos", tip:"Video posts only", url: f => `https://twitter.com/search?q=${e(f+' reaction')}&f=video` },
-  { icon:"◻", name:"Instagram — tags", tip:"Screen-record stories fast", url: f => `https://www.instagram.com/explore/tags/${e(f.replace(/\s+/g,'').toLowerCase()+'reaction')}` },
-  { icon:"◻", name:"Instagram — reels", tip:"Short reaction clips", url: f => `https://www.instagram.com/reels/audio/${e(f+' reaction')}` },
-  { icon:"♪", name:"TikTok", tip:"Sort by Latest", url: f => `https://www.tiktok.com/search?q=${e(f+' reaction')}&t=video` },
-  { icon:"◉", name:"Reddit — MMA/Boxing", tip:"Community links fast", url: f => `https://www.reddit.com/r/MMA/search/?q=${e(f+' reaction')}&sort=new` },
-  { icon:"⊕", name:"Google — videos", tip:"Catches every platform", url: f => `https://www.google.com/search?q=${e('"'+f+'" fighter reaction')}&tbm=vid&tbs=sbd:1` },
+var PLATFORMS = [
+  { icon:"▶", name:"YouTube — reactions", tip:"Newest first", url: function(f){ return "https://www.youtube.com/results?search_query="+enc(f+" reaction")+"&sp=CAI%3D"; } },
+  { icon:"▶", name:"YouTube — fighters reacting", tip:"Other pros reacting", url: function(f){ return "https://www.youtube.com/results?search_query="+enc("fighter reacts "+f); } },
+  { icon:"𝕏", name:"Twitter/X — latest", tip:"Reactions within minutes", url: function(f){ return "https://twitter.com/search?q="+enc(f+" reaction")+"&f=live"; } },
+  { icon:"𝕏", name:"Twitter/X — videos", tip:"Video posts only", url: function(f){ return "https://twitter.com/search?q="+enc(f+" reaction")+"&f=video"; } },
+  { icon:"◻", name:"Instagram — tags", tip:"Screen-record stories fast", url: function(f){ return "https://www.instagram.com/explore/tags/"+enc(f.replace(/\s+/g,"").toLowerCase()+"reaction"); } },
+  { icon:"◻", name:"Instagram — reels", tip:"Short reaction clips", url: function(f){ return "https://www.instagram.com/reels/audio/"+enc(f+" reaction"); } },
+  { icon:"♪", name:"TikTok", tip:"Sort by Latest", url: function(f){ return "https://www.tiktok.com/search?q="+enc(f+" reaction")+"&t=video"; } },
+  { icon:"◉", name:"Reddit — MMA/Boxing", tip:"Community links fast", url: function(f){ return "https://www.reddit.com/r/MMA/search/?q="+enc(f+" reaction")+"&sort=new"; } },
+  { icon:"⊕", name:"Google — videos", tip:"Catches every platform", url: function(f){ return "https://www.google.com/search?q="+enc('"'+f+'" fighter reaction')+"&tbm=vid&tbs=sbd:1"; } }
 ];
 
-function e(s){ return encodeURIComponent(s); }
-let activeFilter = 'all';
-let currentScript = '';
+function enc(s){ return encodeURIComponent(s); }
+
+function showTab(name) {
+  var tabs = document.querySelectorAll('.tab');
+  for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('active');
+  var panes = document.querySelectorAll('.pane');
+  for(var i=0;i<panes.length;i++) panes[i].classList.remove('active');
+  document.querySelector('.tab[onclick="showTab(\''+name+'\')"]').classList.add('active');
+  document.getElementById('pane-'+name).classList.add('active');
+}
 
 function renderKOs(data) {
-  const el = document.getElementById('ko-results');
-  if (!data.length) { el.innerHTML = '<div class="empty">No results found.</div>'; return; }
-  el.innerHTML = data.map((ko, i) => `
-    <div class="ko-card">
-      <div class="ko-rank">#${i+1}</div>
-      <div class="ko-body">
-        <div class="ko-title">${ko.title}</div>
-        <div class="ko-meta">${ko.year} &middot; ${ko.views} views &middot; ${ko.reactions} known reactions</div>
-        <div class="tags">
-          <span class="tag org">${ko.org.toUpperCase()}</span>
-          ${ko.reacted.map(f => `<span class="tag react">${f}</span>`).join('')}
-        </div>
-        <div class="btn-row">
-          <a href="https://www.youtube.com/results?search_query=${e(ko.title+' knockout')}" target="_blank" rel="noopener" class="btn teal">
-            <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Find on YouTube
-          </a>
-          <button class="btn" onclick="jumpToReactions(${JSON.stringify(ko.title)})">
-            <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            Find reactions
-          </button>
-          <button class="btn accent" onclick="openScriptModal(${JSON.stringify(ko.title)})">Write script</button>
-        </div>
-      </div>
-    </div>`).join('');
+  var el = document.getElementById('ko-results');
+  if(!data.length){ el.innerHTML='<div class="empty">No results found.</div>'; return; }
+  var html = '';
+  for(var i=0;i<data.length;i++){
+    var ko = data[i];
+    var tagHtml = '<span class="tag org">'+ko.org.toUpperCase()+'</span>';
+    for(var j=0;j<ko.reacted.length;j++) tagHtml += '<span class="tag react">'+ko.reacted[j]+'</span>';
+    html += '<div class="ko-card">'
+      +'<div class="ko-rank">#'+(i+1)+'</div>'
+      +'<div class="ko-body">'
+      +'<div class="ko-title">'+ko.title+'</div>'
+      +'<div class="ko-meta">'+ko.year+' &middot; '+ko.views+' views &middot; '+ko.reactions+' known reactions</div>'
+      +'<div class="tags">'+tagHtml+'</div>'
+      +'<div class="btn-row">'
+      +'<a href="https://www.youtube.com/results?search_query='+enc(ko.title+' knockout')+'" target="_blank" rel="noopener" class="btn teal">'
+      +'<svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Find on YouTube</a>'
+      +'<button class="btn" onclick="jumpToReactions(\''+ko.title.replace(/'/g,"\\'")+'\')">'
+      +'<svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>Find reactions</button>'
+      +'<button class="btn accent" onclick="openScriptModal(\''+ko.title.replace(/'/g,"\\'")+'\')">Write script</button>'
+      +'</div></div></div>';
+  }
+  el.innerHTML = html;
 }
 
 function filterKO(btn, filter) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  var btns = document.querySelectorAll('.filter-btn');
+  for(var i=0;i<btns.length;i++) btns[i].classList.remove('active');
   btn.classList.add('active');
-  activeFilter = filter;
-  renderKOs(filter === 'all' ? KO_DATA : KO_DATA.filter(k => k.org === filter));
+  renderKOs(filter==='all' ? KO_DATA : KO_DATA.filter(function(k){ return k.org===filter; }));
 }
 
 function searchKOs() {
-  const q = document.getElementById('ko-search').value.toLowerCase().trim();
-  if (!q) { renderKOs(KO_DATA); return; }
-  const filtered = KO_DATA.filter(k =>
-    k.title.toLowerCase().includes(q) || k.org.includes(q) ||
-    k.reacted.some(f => f.toLowerCase().includes(q)) || String(k.year).includes(q)
-  );
+  var q = document.getElementById('ko-search').value.toLowerCase().trim();
+  if(!q){ renderKOs(KO_DATA); return; }
+  var filtered = KO_DATA.filter(function(k){
+    return k.title.toLowerCase().indexOf(q)>-1 || k.org.indexOf(q)>-1 ||
+      k.reacted.some(function(f){ return f.toLowerCase().indexOf(q)>-1; }) ||
+      String(k.year).indexOf(q)>-1;
+  });
   renderKOs(filtered.length ? filtered : KO_DATA);
 }
 
@@ -277,94 +293,102 @@ function jumpToReactions(title) {
 }
 
 function findReactions() {
-  const name = document.getElementById('reaction-input').value.trim();
-  if (!name) return;
-  document.getElementById('reaction-results').innerHTML = `
-    <div class="fighter-heading">${name}</div>
-    <div class="fighter-sub">Click any card to open results in a new tab</div>
-    <div class="section-label">Video platforms</div>
-    <div class="plat-grid">${PLATFORMS.slice(0,4).map(p => platCard(p,name)).join('')}</div>
-    <div class="section-label">Social &amp; community</div>
-    <div class="plat-grid">${PLATFORMS.slice(4).map(p => platCard(p,name)).join('')}</div>
-    <div class="tip-box"><strong>Timing tip:</strong> Search within 48hrs of a fight. Instagram Stories expire in 24hrs — screen record immediately. Twitter/X is fastest; YouTube fills up within 1–3 days.</div>
-    <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
-      <button class="btn" onclick="openAll(${JSON.stringify(name)})">
-        <svg class="icon" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        Open all 9 at once
-      </button>
-      <button class="btn accent" onclick="openScriptModal(${JSON.stringify(name)})">Write a TikTok script</button>
-    </div>`;
-}
-
-function platCard(p, name) {
-  return `<a class="plat-card" href="${p.url(name)}" target="_blank" rel="noopener">
-    <span class="plat-icon">${p.icon}</span>
-    <div class="plat-name">${p.name}</div>
-    <div class="plat-tip">${p.tip}</div>
-  </a>`;
+  var name = document.getElementById('reaction-input').value.trim();
+  if(!name) return;
+  var platHtml1='', platHtml2='';
+  for(var i=0;i<4;i++) platHtml1 += '<a class="plat-card" href="'+PLATFORMS[i].url(name)+'" target="_blank" rel="noopener"><span class="plat-icon">'+PLATFORMS[i].icon+'</span><div class="plat-name">'+PLATFORMS[i].name+'</div><div class="plat-tip">'+PLATFORMS[i].tip+'</div></a>';
+  for(var i=4;i<PLATFORMS.length;i++) platHtml2 += '<a class="plat-card" href="'+PLATFORMS[i].url(name)+'" target="_blank" rel="noopener"><span class="plat-icon">'+PLATFORMS[i].icon+'</span><div class="plat-name">'+PLATFORMS[i].name+'</div><div class="plat-tip">'+PLATFORMS[i].tip+'</div></a>';
+  var safe = name.replace(/'/g,"\\'");
+  document.getElementById('reaction-results').innerHTML =
+    '<div class="fighter-heading">'+name+'</div>'
+    +'<div class="fighter-sub">Click any card to open results in a new tab</div>'
+    +'<div class="section-label">Video platforms</div>'
+    +'<div class="plat-grid">'+platHtml1+'</div>'
+    +'<div class="section-label">Social &amp; community</div>'
+    +'<div class="plat-grid">'+platHtml2+'</div>'
+    +'<div class="tip-box"><strong>Timing tip:</strong> Search within 48hrs of a fight. Instagram Stories expire in 24hrs. Twitter/X is fastest; YouTube fills up within 1-3 days.</div>'
+    +'<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">'
+    +'<button class="btn" onclick="openAll(\''+safe+'\')"><svg class="icon" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Open all 9 at once</button>'
+    +'<button class="btn accent" onclick="openScriptModal(\''+safe+'\')">Write a TikTok script</button>'
+    +'</div>';
 }
 
 function openAll(name) {
-  PLATFORMS.forEach(p => window.open(p.url(name), '_blank'));
+  for(var i=0;i<PLATFORMS.length;i++) window.open(PLATFORMS[i].url(name),'_blank');
 }
 
-async function openScriptModal(title) {
+function saveKey() {
+  var val = document.getElementById('api-key-input').value.trim();
+  if(val.indexOf('sk-ant-')!==0){ alert('Your key should start with sk-ant-'); return; }
+  apiKey = val;
+  document.getElementById('key-saved').style.display = 'block';
+  document.getElementById('api-key-input').value = '••••••••••••••••';
+  if(pendingTitle) generateScript(pendingTitle);
+}
+
+function openScriptModal(title) {
+  pendingTitle = title;
   document.getElementById('modal-title').textContent = 'TikTok Script — ' + title;
   document.getElementById('script-output').textContent = '';
-  document.getElementById('script-loading').style.display = 'flex';
+  document.getElementById('copy-btn').style.display = 'none';
+  document.getElementById('script-loading').style.display = 'none';
   document.getElementById('modal').classList.add('open');
   currentScript = '';
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'anthropic-api-key': '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' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: `Write a punchy TikTok script for the FightersReact account. The video is about: "${title}".
-
-Format it exactly like this:
-HOOK (first 3 seconds): [attention-grabbing opener]
-MAIN CONTENT: [what to show/say, step by step]
-CAPTION: [TikTok caption with hashtags]
-AUDIO SUGGESTION: [trending sound type that fits]
-
-Keep it under 60 seconds when read aloud. High energy, combat sports fan tone. No fluff.`
-        }]
-      })
-    });
-    const data = await res.json();
-    const text = data.content?.map(c => c.text || '').join('') || 'Could not generate script.';
-    currentScript = text;
-    document.getElementById('script-loading').style.display = 'none';
-    document.getElementById('script-output').textContent = text;
-  } catch (err) {
-    document.getElementById('script-loading').style.display = 'none';
-    document.getElementById('script-output').textContent = 'Error generating script. Please try again.';
+  if(!apiKey) {
+    document.getElementById('key-setup').style.display = 'block';
+  } else {
+    document.getElementById('key-setup').style.display = 'none';
+    generateScript(title);
   }
 }
 
+function generateScript(title) {
+  document.getElementById('script-loading').style.display = 'flex';
+  document.getElementById('script-output').textContent = '';
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-allow-browser': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: 'Write a punchy TikTok script for the FightersReact account. The video is about: "'+title+'".\n\nFormat it exactly like this:\nHOOK (first 3 seconds): [attention-grabbing opener]\nMAIN CONTENT: [what to show/say, step by step]\nCAPTION: [TikTok caption with hashtags]\nAUDIO SUGGESTION: [trending sound type that fits]\n\nKeep it under 60 seconds when read aloud. High energy, combat sports fan tone. No fluff.'
+      }]
+    })
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    if(data.error) throw new Error(data.error.message);
+    var text = '';
+    for(var i=0;i<data.content.length;i++) text += data.content[i].text||'';
+    currentScript = text || 'Could not generate script.';
+    document.getElementById('script-loading').style.display = 'none';
+    document.getElementById('script-output').textContent = currentScript;
+    document.getElementById('copy-btn').style.display = 'inline-flex';
+  })
+  .catch(function(err){
+    document.getElementById('script-loading').style.display = 'none';
+    document.getElementById('script-output').textContent = 'Error: ' + err.message;
+  });
+}
+
 function copyScript() {
-  if (!currentScript) return;
-  navigator.clipboard.writeText(currentScript).then(() => {
-    const badge = document.getElementById('copied-badge');
+  if(!currentScript) return;
+  navigator.clipboard.writeText(currentScript).then(function(){
+    var badge = document.getElementById('copied-badge');
     badge.classList.add('show');
-    setTimeout(() => badge.classList.remove('show'), 1800);
+    setTimeout(function(){ badge.classList.remove('show'); }, 1800);
   });
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
-function closeModalOutside(e) { if (e.target === document.getElementById('modal')) closeModal(); }
-
-function showTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
-  document.querySelector(`.tab[onclick="showTab('${name}')"]`).classList.add('active');
-  document.getElementById('pane-' + name).classList.add('active');
-}
+function closeModalOutside(e) { if(e.target===document.getElementById('modal')) closeModal(); }
 
 renderKOs(KO_DATA);
 </script>
