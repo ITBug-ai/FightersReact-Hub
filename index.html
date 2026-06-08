@@ -318,7 +318,7 @@ async function openScriptModal(title) {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'anthropic-api-key': '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' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
